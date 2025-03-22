@@ -10,7 +10,7 @@ import (
 
 type LLMAgent interface {
 	Generate(ctx context.Context, data []byte) (*zjson.Res, error)
-	PrepareRequest(messages *message.Messages, options ...ztype.Map) (body []byte, err error)
+	PrepareRequest(messages *message.Messages, options ...func(ztype.Map) ztype.Map) (body []byte, err error)
 	ParseResponse(*zjson.Res) (*Response, error)
 }
 

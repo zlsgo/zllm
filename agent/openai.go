@@ -162,7 +162,7 @@ func (p *OpenAIProvider) streamable(ctx context.Context, url string, header zhtt
 	return zjson.ParseBytes(json), nil
 }
 
-func (p *OpenAIProvider) PrepareRequest(messages *message.Messages, options ...ztype.Map) ([]byte, error) {
+func (p *OpenAIProvider) PrepareRequest(messages *message.Messages, options ...func(ztype.Map) ztype.Map) ([]byte, error) {
 	requestBody := ztype.Map{
 		"model":       p.options.Model,
 		"stream":      p.options.Stream,
@@ -177,9 +177,7 @@ func (p *OpenAIProvider) PrepareRequest(messages *message.Messages, options ...z
 	})
 
 	for _, v := range options {
-		for k, v := range v {
-			requestBody[k] = v
-		}
+		requestBody = v(requestBody)
 	}
 
 	return json.Marshal(requestBody)

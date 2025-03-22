@@ -35,7 +35,10 @@ func TestNewOllamaProvider(t *testing.T) {
 
 	data, err := llm.PrepareRequest(
 		messages,
-		ztype.Map{"temperature": 0.3},
+		func(m ztype.Map) ztype.Map {
+			m.Set("temperature", 0.3)
+			return m
+		},
 	)
 	tt.Log(string(data))
 	tt.NoError(err, true)

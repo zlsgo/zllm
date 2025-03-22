@@ -83,7 +83,7 @@ func (p *OllamaProvider) Generate(ctx context.Context, body []byte) (json *zjson
 	return
 }
 
-func (p *OllamaProvider) PrepareRequest(messages *message.Messages, options ...ztype.Map) ([]byte, error) {
+func (p *OllamaProvider) PrepareRequest(messages *message.Messages, options ...func(ztype.Map) ztype.Map) ([]byte, error) {
 	requestBody := ztype.Map{
 		"model":       p.options.Model,
 		"stream":      p.options.Stream,
@@ -98,9 +98,7 @@ func (p *OllamaProvider) PrepareRequest(messages *message.Messages, options ...z
 	})
 
 	for _, v := range options {
-		for k, v := range v {
-			requestBody[k] = v
-		}
+		requestBody = v(requestBody)
 	}
 
 	return json.Marshal(requestBody)

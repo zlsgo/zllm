@@ -14,7 +14,7 @@ import (
 	"github.com/zlsgo/zllm/utils"
 )
 
-func CompleteLLM[T *message.Prompt | *message.Messages](ctx context.Context, llm agent.LLMAgent, p T, options ...ztype.Map) (string, error) {
+func CompleteLLM[T *message.Prompt | *message.Messages](ctx context.Context, llm agent.LLMAgent, p T, options ...func(ztype.Map) ztype.Map) (string, error) {
 	var (
 		messages *message.Messages
 		err      error
@@ -47,7 +47,7 @@ func CompleteLLM[T *message.Prompt | *message.Messages](ctx context.Context, llm
 	return parse, err
 }
 
-func CompleteLLMJSON[T *message.Prompt | *message.Messages](ctx context.Context, llm agent.LLMAgent, p T, options ...ztype.Map) (ztype.Map, error) {
+func CompleteLLMJSON[T *message.Prompt | *message.Messages](ctx context.Context, llm agent.LLMAgent, p T, options ...func(ztype.Map) ztype.Map) (ztype.Map, error) {
 	resp, err := CompleteLLM(ctx, llm, p, options...)
 	if err != nil {
 		return nil, err

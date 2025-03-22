@@ -31,7 +31,10 @@ func TestNewOpenAIProvider(t *testing.T) {
 
 	data, err := openai.PrepareRequest(
 		messages,
-		ztype.Map{"temperature": 0.7},
+		func(m ztype.Map) ztype.Map {
+			m.Set("temperature", 0.7)
+			return m
+		},
 	)
 	tt.Log(string(data))
 	tt.NoError(err, true)

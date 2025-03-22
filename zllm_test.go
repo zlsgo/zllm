@@ -204,7 +204,10 @@ func TestExecutePromptMore(t *testing.T) {
 			},
 		)
 
-		resp, err := CompleteLLM(context.Background(), llm, p, ztype.Map{"stream": false})
+		resp, err := CompleteLLM(context.Background(), llm, p, func(m ztype.Map) ztype.Map {
+			m["stream"] = false
+			return m
+		})
 		tt.Log(resp)
 		tt.NoError(err, true)
 	})
@@ -346,8 +349,8 @@ func TestLLM(t *testing.T) {
 	utils.SetDebug(true)
 	p := message.NewPrompt("北京的天气怎么样？", func(po *message.PromptOptions) {
 	})
-	resp, err := CompleteLLMJSON(context.Background(), llm, p, ztype.Map{
-		"tools": ztype.Maps{
+	resp, err := CompleteLLMJSON(context.Background(), llm, p, func(m ztype.Map) ztype.Map {
+		m["tools"] = ztype.Maps{
 			{
 				"type": "function",
 				"function": ztype.Map{
@@ -370,7 +373,8 @@ func TestLLM(t *testing.T) {
 					},
 				},
 			},
-		},
+		}
+		return m
 	})
 	tt.NoError(err, true)
 	tt.Log(resp)

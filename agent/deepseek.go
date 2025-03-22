@@ -126,7 +126,7 @@ func (p *DeepseekProvider) streamable(ctx context.Context, body []byte) (*zjson.
 	return zjson.ParseBytes(json), nil
 }
 
-func (p *DeepseekProvider) PrepareRequest(messages *message.Messages, options ...ztype.Map) ([]byte, error) {
+func (p *DeepseekProvider) PrepareRequest(messages *message.Messages, options ...func(ztype.Map) ztype.Map) ([]byte, error) {
 	requestBody := ztype.Map{
 		"model":       p.options.Model,
 		"stream":      p.options.Stream,
@@ -141,9 +141,7 @@ func (p *DeepseekProvider) PrepareRequest(messages *message.Messages, options ..
 	})
 
 	for _, v := range options {
-		for k, v := range v {
-			requestBody[k] = v
-		}
+		v(requestBody)
 	}
 
 	return json.Marshal(requestBody)
