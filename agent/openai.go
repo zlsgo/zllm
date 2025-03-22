@@ -19,20 +19,30 @@ import (
 )
 
 type OpenAIOptions struct {
-	APIKey      string
-	Model       string
-	BaseURL     string
-	APIURL      string
-	Debug       bool
+	// Api Key，多个 Api Key 用逗号分隔
+	APIKey string
+	// 模型
+	Model string
+	// 基础 URL
+	BaseURL string
+	// Api URL
+	APIURL string
+	// 调试
+	Debug bool
+	// 温度
 	Temperature float64
-	Stream      bool
-	MaxRetries  uint
-	OnMessage   func(string, []byte)
+	// 流式
+	Stream bool
+	// 最大重试次数
+	MaxRetries uint
+	// 消息回调
+	OnMessage func(string, []byte)
 }
 
 type OpenAIProvider struct {
 	options  OpenAIOptions
-	endpoint string
+	endpoint []string
+	keys     []string
 	headers  zhttp.Header
 }
 
@@ -51,10 +61,10 @@ func NewOpenAIProvider(opt ...func(*OpenAIOptions)) LLMAgent {
 
 	return &OpenAIProvider{
 		options:  o,
-		endpoint: o.BaseURL + o.APIURL,
+		endpoint: zarray.Slice[string](o.BaseURL, ","),
+		keys:     zarray.Slice[string](o.APIKey, ","),
 		headers: zhttp.Header{
-			"Content-Type":  "application/json",
-			"Authorization": "Bearer " + o.APIKey,
+			"Content-Type": "application/json",
 		},
 	}
 }
@@ -64,13 +74,20 @@ func (p *OpenAIProvider) Generate(ctx context.Context, body []byte) (json *zjson
 
 	utils.Log(zstring.Bytes2String(body))
 
+	keys := newRand(p.keys)
+	endpoints := newRand(p.endpoint)
+
 	err = doRetry("openai", int(p.options.MaxRetries), func() (retry bool, err error) {
+		url, header := endpoints()+p.options.APIURL, zhttp.Header{
+			"Content-Type":  "application/json",
+			"Authorization": "Bearer " + keys(),
+		}
 		if stream {
-			json, err = p.streamable(ctx, body)
+			json, err = p.streamable(ctx, url, header, body)
 			return true, err
 		}
 
-		resp, err := utils.GetClient().Post(p.endpoint, p.headers, body, ctx)
+		resp, err := utils.GetClient().Post(url, header, body, ctx)
 		if err != nil {
 			return false, err
 		}
@@ -96,8 +113,8 @@ func (p *OpenAIProvider) Generate(ctx context.Context, body []byte) (json *zjson
 	return
 }
 
-func (p *OpenAIProvider) streamable(ctx context.Context, body []byte) (*zjson.Res, error) {
-	sse, err := zhttp.SSE(p.endpoint, p.headers, body, ctx)
+func (p *OpenAIProvider) streamable(ctx context.Context, url string, header zhttp.Header, body []byte) (*zjson.Res, error) {
+	sse, err := zhttp.SSE(url, header, body, ctx)
 	if err != nil {
 		return nil, err
 	}
