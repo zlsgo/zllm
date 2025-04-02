@@ -54,6 +54,11 @@ func NewOllamaProvider(opt ...func(*OllamaOptions)) LLMAgent {
 }
 
 func (p *OllamaProvider) Generate(ctx context.Context, body []byte) (json *zjson.Res, err error) {
+	body, err = CompleteMessag(p, body)
+	if err != nil {
+		return nil, err
+	}
+
 	utils.Log(zstring.Bytes2String(body))
 	stream := zjson.GetBytes(body, "stream").Bool()
 
