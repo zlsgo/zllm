@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 
 	"github.com/sohaha/zlsgo/zarray"
+	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/zhttp"
 	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/zstring"
@@ -69,27 +69,58 @@ func NewOpenAIProvider(opt ...func(*OpenAIOptions)) LLMAgent {
 	}
 }
 
-func (p *OpenAIProvider) Generate(ctx context.Context, body []byte) (json *zjson.Res, err error) {
-	body, err = CompleteMessag(p, body)
+func (p *OpenAIProvider) Generate(ctx context.Context, body []byte) (*zjson.Res, error) {
+	done, err := p.Stream(ctx, body, nil)
+	if err != nil {
+		return &zjson.Res{}, err
+	}
+	json := <-done
+	return json, err
+}
+
+func (p *OpenAIProvider) Stream(ctx context.Context, body []byte, callback func(string, []byte)) (<-chan *zjson.Res, error) {
+	body, err := CompleteMessag(p, body)
 	if err != nil {
 		return nil, err
 	}
 
 	stream := zjson.GetBytes(body, "stream").Bool()
+	if callback == nil && stream {
+		stream = false
+		body, _ = zjson.SetBytes(body, "stream", false)
+	} else if callback != nil && !stream {
+		stream = true
+		body, _ = zjson.SetBytes(body, "stream", true)
+	}
 
 	utils.Log(zstring.Bytes2String(body))
 
 	keys := newRand(p.keys)
 	endpoints := newRand(p.endpoint)
 
+	done := make(chan *zjson.Res, 1)
+	var json *zjson.Res
 	err = doRetry("openai", int(p.options.MaxRetries), func() (retry bool, err error) {
 		url, header := endpoints()+p.options.APIURL, zhttp.Header{
 			"Content-Type":  "application/json",
 			"Authorization": "Bearer " + keys(),
 		}
+
 		if stream {
-			json, err = p.streamable(ctx, url, header, body)
-			return true, err
+			err = p.streamable(ctx, url, header, body, done, callback)
+			if err != nil {
+				status := zerror.UnwrapFirstCode(err)
+				if status != 0 {
+					if msg, ok := zerror.Unwrap(err, status); ok {
+						canRetry, err := isRetry(int(status), msg.Error())
+						if err != nil {
+							return canRetry, err
+						}
+					}
+				}
+				return true, errors.New("ai provider api request failed")
+			}
+			return false, nil
 		}
 
 		resp, err := utils.GetClient().Post(url, header, body, ctx)
@@ -97,74 +128,78 @@ func (p *OpenAIProvider) Generate(ctx context.Context, body []byte) (json *zjson
 			return false, err
 		}
 
-		status := resp.StatusCode()
-		if status != http.StatusOK {
-			errMsg := resp.JSON("error.message").String()
-			if errMsg == "" {
-				errMsg = fmt.Sprintf("status code: %d", status)
-			}
-			if zarray.Contains([]int{http.StatusInternalServerError, http.StatusServiceUnavailable, http.StatusGatewayTimeout, http.StatusTooManyRequests}, status) {
-				return true, errors.New(errMsg)
-			}
-			return false, errors.New(errMsg)
+		json = resp.JSONs()
+		canRetry, err := isRetry(resp.StatusCode(), json.Get("error.message").String())
+		if err != nil {
+			return canRetry, err
 		}
 
-		json = resp.JSONs()
+		done <- json
+		utils.Log(json)
 		return false, nil
 	})
 
-	utils.Log(json)
-
-	return
+	return done, err
 }
 
-func (p *OpenAIProvider) streamable(ctx context.Context, url string, header zhttp.Header, body []byte) (*zjson.Res, error) {
+func (p *OpenAIProvider) streamable(ctx context.Context, url string, header zhttp.Header, body []byte, done chan<- *zjson.Res, callback func(string, []byte)) error {
 	sse, err := zhttp.SSE(url, header, body, ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	result := zstring.Buffer()
+	go func() {
+		var (
+			rawMessage []byte
+			result     = zstring.Buffer()
+		)
 
-	var rawMessage []byte
-	c, err := sse.OnMessage(func(ev *zhttp.SSEEvent) {
-		if bytes.Equal(ev.Data, []byte("[DONE]")) {
-			sse.Close()
+		defer func() {
+			if rawMessage != nil {
+				choice := zjson.GetBytes(rawMessage, "choices.0")
+				_ = choice.Delete("delta")
+				_ = choice.Set("message.content", result.String())
+				_ = choice.Set("message.role", "assistant")
+				_ = choice.Set("message.finish_reason", "stop")
+				json, _ := zjson.SetRawBytes(rawMessage, "choices.0", choice.Bytes())
+				done <- zjson.ParseBytes(json)
+			}
+		}()
+
+		c, err := sse.OnMessage(func(ev *zhttp.SSEEvent) {
+			if bytes.Equal(ev.Data, []byte("[DONE]")) {
+				sse.Close()
+			}
+
+			s := zjson.GetBytes(ev.Data, "choices.0.delta.content").String()
+
+			if rawMessage == nil && s != "" {
+				rawMessage = ev.Data
+			}
+
+			if callback != nil {
+				callback(s, ev.Data)
+			}
+
+			if p.options.OnMessage != nil {
+				p.options.OnMessage(s, ev.Data)
+			}
+
+			result.WriteString(s)
+		})
+		if err != nil {
+			return
 		}
 
-		s := zjson.GetBytes(ev.Data, "choices.0.delta.content").String()
-
-		if rawMessage == nil && s != "" {
-			rawMessage = ev.Data
+		select {
+		case <-c:
+			return
+		case <-sse.Error():
+			return
 		}
+	}()
 
-		if p.options.OnMessage != nil {
-			p.options.OnMessage(s, ev.Data)
-		}
-
-		result.WriteString(s)
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	select {
-	case <-c:
-	case err := <-sse.Error():
-		return nil, err
-	}
-
-	choice := zjson.GetBytes(rawMessage, "choices.0")
-	_ = choice.Delete("delta")
-	_ = choice.Set("message.content", result.String())
-	_ = choice.Set("message.role", "assistant")
-	_ = choice.Set("message.finish_reason", "stop")
-	json, err := zjson.SetRawBytes(rawMessage, "choices.0", choice.Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	return zjson.ParseBytes(json), nil
+	return nil
 }
 
 func (p *OpenAIProvider) PrepareRequest(messages *message.Messages, options ...func(ztype.Map) ztype.Map) ([]byte, error) {

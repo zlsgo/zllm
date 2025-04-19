@@ -88,6 +88,10 @@ func (p *OllamaProvider) Generate(ctx context.Context, body []byte) (json *zjson
 	return
 }
 
+func (p *OllamaProvider) Stream(ctx context.Context, body []byte, callback func(string, []byte)) (done <-chan *zjson.Res, err error) {
+	return nil, errors.New("ollama not support stream")
+}
+
 func (p *OllamaProvider) PrepareRequest(messages *message.Messages, options ...func(ztype.Map) ztype.Map) ([]byte, error) {
 	requestBody := ztype.Map{
 		"model":       p.options.Model,

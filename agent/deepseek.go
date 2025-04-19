@@ -86,6 +86,10 @@ func (p *DeepseekProvider) Generate(ctx context.Context, body []byte) (json *zjs
 	return
 }
 
+func (p *DeepseekProvider) Stream(ctx context.Context, body []byte, callback func(string, []byte)) (done <-chan *zjson.Res, err error) {
+	return nil, errors.New("deepseek not support stream")
+}
+
 func (p *DeepseekProvider) streamable(ctx context.Context, body []byte) (*zjson.Res, error) {
 	sse, err := zhttp.SSE(p.endpoint, p.headers, body, ctx)
 	if err != nil {
