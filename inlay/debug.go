@@ -1,4 +1,4 @@
-package utils
+package inlay
 
 import (
 	"github.com/sohaha/zlsgo/zlog"
@@ -9,6 +9,9 @@ var isDebug = zutil.NewBool(false)
 
 func SetDebug(debug bool) {
 	isDebug.Store(debug)
+	if log == nil {
+		log = zlog.New("[LLMX] ")
+	}
 	if debug {
 		log.SetLogLevel(zlog.LogDebug)
 	} else {

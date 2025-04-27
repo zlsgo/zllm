@@ -13,8 +13,8 @@ import (
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
+	"github.com/zlsgo/zllm/inlay"
 	"github.com/zlsgo/zllm/message"
-	"github.com/zlsgo/zllm/utils"
 )
 
 type OllamaOptions struct {
@@ -59,7 +59,7 @@ func (p *OllamaProvider) Generate(ctx context.Context, body []byte) (json *zjson
 		return nil, err
 	}
 
-	utils.Log(zstring.Bytes2String(body))
+	inlay.Log(zstring.Bytes2String(body))
 	stream := zjson.GetBytes(body, "stream").Bool()
 
 	err = doRetry("ollama", int(p.options.MaxRetries), func() (retry bool, err error) {
@@ -69,7 +69,7 @@ func (p *OllamaProvider) Generate(ctx context.Context, body []byte) (json *zjson
 		}
 
 		var resp *zhttp.Res
-		resp, err = utils.GetClient().Post(p.endpoint, p.headers, body, ctx)
+		resp, err = inlay.GetClient().Post(p.endpoint, p.headers, body, ctx)
 		if err != nil {
 			return false, err
 		}
@@ -83,7 +83,7 @@ func (p *OllamaProvider) Generate(ctx context.Context, body []byte) (json *zjson
 		return false, nil
 	})
 
-	utils.Log(json)
+	inlay.Log(json)
 
 	return
 }
@@ -131,7 +131,7 @@ func (p *OllamaProvider) ParseResponse(body *zjson.Res) (*Response, error) {
 }
 
 func (p *OllamaProvider) streamable(ctx context.Context, body []byte) (*zjson.Res, error) {
-	sse, err := zhttp.SSE(p.endpoint, p.headers, body, ctx)
+	sse, err := inlay.GetClient().SSE(p.endpoint, nil, p.headers, body, ctx)
 	if err != nil {
 		return nil, err
 	}

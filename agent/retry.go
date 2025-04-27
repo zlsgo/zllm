@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/sohaha/zlsgo/zutil"
-	"github.com/zlsgo/zllm/utils"
+	"github.com/zlsgo/zllm/inlay"
 )
 
 func doRetry(provider string, max int, fn func() (retry bool, err error)) (err error) {
@@ -18,7 +18,7 @@ func doRetry(provider string, max int, fn func() (retry bool, err error)) (err e
 			if err != nil {
 				errMsg = err.Error()
 			}
-			utils.Warn(provider, "retrying", i, errMsg)
+			inlay.Warn(provider, "retrying", i, errMsg)
 		}
 
 		retry, err = fn()

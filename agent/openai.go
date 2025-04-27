@@ -14,8 +14,8 @@ import (
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
+	"github.com/zlsgo/zllm/inlay"
 	"github.com/zlsgo/zllm/message"
-	"github.com/zlsgo/zllm/utils"
 )
 
 type OpenAIOptions struct {
@@ -93,7 +93,7 @@ func (p *OpenAIProvider) Stream(ctx context.Context, body []byte, callback func(
 		body, _ = zjson.SetBytes(body, "stream", true)
 	}
 
-	utils.Log(zstring.Bytes2String(body))
+	inlay.Log(zstring.Bytes2String(body))
 
 	keys := newRand(p.keys)
 	endpoints := newRand(p.endpoint)
@@ -110,20 +110,23 @@ func (p *OpenAIProvider) Stream(ctx context.Context, body []byte, callback func(
 			err = p.streamable(ctx, url, header, body, done, callback)
 			if err != nil {
 				status := zerror.UnwrapFirstCode(err)
-				if status != 0 {
-					if msg, ok := zerror.Unwrap(err, status); ok {
-						canRetry, err := isRetry(int(status), msg.Error())
-						if err != nil {
-							return canRetry, err
-						}
+				if status == 0 {
+					return false, errors.New("ai provider api request failed")
+				}
+
+				if msg, ok := zerror.Unwrap(err, status); ok {
+					canRetry, err := isRetry(int(status), msg.Error())
+					if err != nil {
+						return canRetry, err
 					}
 				}
+
 				return true, errors.New("ai provider api request failed")
 			}
 			return false, nil
 		}
 
-		resp, err := utils.GetClient().Post(url, header, body, ctx)
+		resp, err := inlay.GetClient().Post(url, header, body, ctx)
 		if err != nil {
 			return false, err
 		}
@@ -135,7 +138,7 @@ func (p *OpenAIProvider) Stream(ctx context.Context, body []byte, callback func(
 		}
 
 		done <- json
-		utils.Log(json)
+		inlay.Log(json)
 		return false, nil
 	})
 
@@ -143,7 +146,7 @@ func (p *OpenAIProvider) Stream(ctx context.Context, body []byte, callback func(
 }
 
 func (p *OpenAIProvider) streamable(ctx context.Context, url string, header zhttp.Header, body []byte, done chan<- *zjson.Res, callback func(string, []byte)) error {
-	sse, err := zhttp.SSE(url, header, body, ctx)
+	sse, err := inlay.GetClient().SSE(url, nil, header, body, ctx)
 	if err != nil {
 		return err
 	}
@@ -204,11 +207,12 @@ func (p *OpenAIProvider) streamable(ctx context.Context, url string, header zhtt
 
 func (p *OpenAIProvider) PrepareRequest(messages *message.Messages, options ...func(ztype.Map) ztype.Map) ([]byte, error) {
 	requestBody := ztype.Map{
-		"model":       p.options.Model,
-		"stream":      p.options.Stream,
-		"temperature": p.options.Temperature,
+		"model":  p.options.Model,
+		"stream": p.options.Stream,
 	}
-
+	if p.options.Temperature >= 0 {
+		requestBody["temperature"] = p.options.Temperature
+	}
 	requestBody["messages"] = zarray.Map(messages.History(true), func(i int, v []string) map[string]string {
 		return map[string]string{
 			"role":    v[0],

@@ -10,17 +10,21 @@ import (
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/zllm/agent"
+	"github.com/zlsgo/zllm/inlay"
 	"github.com/zlsgo/zllm/message"
-	"github.com/zlsgo/zllm/utils"
 )
 
-func CompleteLLM[T *message.Prompt | *message.Messages](ctx context.Context, llm agent.LLMAgent, p T, options ...func(ztype.Map) ztype.Map) (string, error) {
+type promptMsg interface {
+	*message.Prompt | *message.Messages
+}
+
+func CompleteLLM[T promptMsg](ctx context.Context, llm agent.LLMAgent, msg T, options ...func(ztype.Map) ztype.Map) (string, error) {
 	var (
 		messages *message.Messages
 		err      error
 	)
 
-	switch v := any(p).(type) {
+	switch v := any(msg).(type) {
 	case *message.Prompt:
 		messages, err = v.ConvertToMessages()
 		if err != nil {
@@ -29,7 +33,7 @@ func CompleteLLM[T *message.Prompt | *message.Messages](ctx context.Context, llm
 	case *message.Messages:
 		messages = v
 	default:
-		return "", fmt.Errorf("invalid prompt type: %T", p)
+		return "", fmt.Errorf("invalid prompt type: %T", msg)
 	}
 
 	content, err := llm.PrepareRequest(messages, options...)
@@ -47,8 +51,8 @@ func CompleteLLM[T *message.Prompt | *message.Messages](ctx context.Context, llm
 	return parse, err
 }
 
-func CompleteLLMJSON[T *message.Prompt | *message.Messages](ctx context.Context, llm agent.LLMAgent, p T, options ...func(ztype.Map) ztype.Map) (ztype.Map, error) {
-	resp, err := CompleteLLM(ctx, llm, p, options...)
+func CompleteLLMJSON[T promptMsg](ctx context.Context, llm agent.LLMAgent, msg T, options ...func(ztype.Map) ztype.Map) (ztype.Map, error) {
+	resp, err := CompleteLLM(ctx, llm, msg, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +73,7 @@ func processLLMInteraction(ctx context.Context, llm agent.LLMAgent, messages *me
 			if err != nil {
 				errMsg = err.Error()
 			}
-			utils.Warn("retrying:", i, errMsg)
+			inlay.Warn("retrying:", i, errMsg)
 		}
 
 		var resp *zjson.Res

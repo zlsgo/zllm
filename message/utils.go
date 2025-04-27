@@ -7,7 +7,7 @@ import (
 	"github.com/sohaha/zlsgo/zarray"
 	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/zlsgo/zllm/utils"
+	"github.com/zlsgo/zllm/inlay"
 )
 
 type OutputFormat interface {
@@ -25,7 +25,7 @@ func (p outputJSONFormat) Parse(resp []byte) (any, error) {
 		return resp, nil
 	}
 
-	j := zjson.ParseBytes(utils.ParseContent(resp))
+	j := zjson.ParseBytes(inlay.ParseContent(resp))
 	if !j.IsObject() {
 		return nil, errors.New("invalid response")
 	}

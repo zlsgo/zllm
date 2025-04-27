@@ -9,14 +9,14 @@ import (
 	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/zllm/agent"
+	"github.com/zlsgo/zllm/inlay"
 	"github.com/zlsgo/zllm/message"
-	"github.com/zlsgo/zllm/utils"
 )
 
 var llm agent.LLMAgent
 
 func TestMain(m *testing.M) {
-	utils.SetDebug(true)
+	inlay.SetDebug(true)
 
 	llm = agent.NewOpenAIProvider(func(oa *agent.OpenAIOptions) {
 		oa.Model = "gpt-4o-mini"
@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 
 func TestExecuteMessages(t *testing.T) {
 	tt := zlsgo.NewTest(t)
-	utils.SetDebug(true)
+
 	messages := message.NewMessages()
 	messages.Append(message.Message{Role: "user", Content: "你好呀"})
 
@@ -235,7 +235,7 @@ func TestExecutePromptMore(t *testing.T) {
 
 func TestExtractTimeLocation(t *testing.T) {
 	tt := zlsgo.NewTest(t)
-	utils.SetDebug(true)
+
 	p := message.NewPrompt(
 		"现在时间是 2025-02-10，地点是 北京，我现在需要知道明天的天气情况",
 		func(p *message.PromptOptions) {
@@ -254,7 +254,6 @@ func TestExtractTimeLocation(t *testing.T) {
 func TestRole(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	// utils.SetLogLevel(zlog.LogDebug)
 	p := message.NewPrompt("水加火", func(p *message.PromptOptions) {
 		p.SystemPrompt = "你是一个名为「合成新元素」的创意对话游戏玩法，我可以通过对话的方式与你一起玩一个类似「涂鸦上帝」的元素合成游戏。\n根据用户提供的元素，通过不断的自由组合，来随机生成新的物质。"
 		p.Rules = []string{
@@ -346,7 +345,7 @@ func TestRole(t *testing.T) {
 
 func TestLLM(t *testing.T) {
 	tt := zlsgo.NewTest(t)
-	utils.SetDebug(true)
+
 	p := message.NewPrompt("北京的天气怎么样？", func(po *message.PromptOptions) {
 	})
 	resp, err := CompleteLLMJSON(context.Background(), llm, p, func(m ztype.Map) ztype.Map {

@@ -13,8 +13,8 @@ import (
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
+	"github.com/zlsgo/zllm/inlay"
 	"github.com/zlsgo/zllm/message"
-	"github.com/zlsgo/zllm/utils"
 )
 
 type DeepseekOptions struct {
@@ -64,7 +64,7 @@ func (p *DeepseekProvider) Generate(ctx context.Context, body []byte) (json *zjs
 
 	stream := zjson.GetBytes(body, "stream").Bool()
 
-	utils.Log(zstring.Bytes2String(body))
+	inlay.Log(zstring.Bytes2String(body))
 
 	err = doRetry("deepseek", int(p.options.MaxRetries), func() (retry bool, err error) {
 		if stream {
@@ -72,7 +72,7 @@ func (p *DeepseekProvider) Generate(ctx context.Context, body []byte) (json *zjs
 			return true, err
 		}
 
-		resp, err := utils.GetClient().Post(p.endpoint, p.headers, body, ctx)
+		resp, err := inlay.GetClient().Post(p.endpoint, p.headers, body, ctx)
 		if err != nil {
 			return true, err
 		}
@@ -81,7 +81,7 @@ func (p *DeepseekProvider) Generate(ctx context.Context, body []byte) (json *zjs
 		return false, nil
 	})
 
-	utils.Log(json)
+	inlay.Log(json)
 
 	return
 }
@@ -91,7 +91,7 @@ func (p *DeepseekProvider) Stream(ctx context.Context, body []byte, callback fun
 }
 
 func (p *DeepseekProvider) streamable(ctx context.Context, body []byte) (*zjson.Res, error) {
-	sse, err := zhttp.SSE(p.endpoint, p.headers, body, ctx)
+	sse, err := inlay.GetClient().SSE(p.endpoint, nil, p.headers, body, ctx)
 	if err != nil {
 		return nil, err
 	}
