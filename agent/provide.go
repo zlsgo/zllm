@@ -15,11 +15,6 @@ type LLMAgent interface {
 	ParseResponse(*zjson.Res) (*Response, error)
 }
 
-type Tool struct {
-	Name string `json:"name"`
-	Args string `json:"args"`
-}
-
 type Response struct {
 	Content []byte `json:"content"`
 	Tools   []Tool `json:"tools"`
