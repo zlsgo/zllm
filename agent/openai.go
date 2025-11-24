@@ -24,12 +24,12 @@ type OpenAIOptions struct {
 }
 
 // 实现 providerConfig 接口
-func (o *OpenAIOptions) getAPIKey() string {
-	return o.APIKey
+func (o *OpenAIOptions) getAPIKey() []string {
+	return parseValue(o.APIKey)
 }
 
 func (o *OpenAIOptions) getEndpoints() []string {
-	return parseKeys(o.BaseURL)
+	return parseValue(o.BaseURL)
 }
 
 func (o *OpenAIOptions) getAPIPath() string {
@@ -37,7 +37,7 @@ func (o *OpenAIOptions) getAPIPath() string {
 }
 
 func (o *OpenAIOptions) buildHeaders(apiKey string) zhttp.Header {
-	return buildAuthHeaders("Bearer " + apiKey)
+	return buildAuthHeaders(apiKey)
 }
 
 func (o *OpenAIOptions) getStreamProcessor() string {
@@ -100,8 +100,8 @@ func NewOpenAI(opt ...func(*OpenAIOptions)) LLM {
 	return &OpenAIProvider{
 		baseProvider: baseProvider,
 		options:      o,
-		endpoint:     parseKeys(o.BaseURL),
-		keys:         parseKeys(o.APIKey),
+		endpoint:     parseValue(o.BaseURL),
+		keys:         parseValue(o.APIKey),
 	}
 }
 

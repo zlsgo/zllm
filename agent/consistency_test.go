@@ -81,7 +81,7 @@ func TestParseKeysFunction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := parseKeys(tt.input)
+			result := parseValue(tt.input)
 			if len(result) != len(tt.expected) {
 				t.Errorf("parseKeys(%q) length mismatch: got %d, want %d", tt.input, len(result), len(tt.expected))
 				return

@@ -20,8 +20,8 @@ type OllamaOptions struct {
 	OnMessage   func(string, []byte)
 }
 
-func (o *OllamaOptions) getAPIKey() string {
-	return o.APIKey
+func (o *OllamaOptions) getAPIKey() []string {
+	return parseValue(o.APIKey)
 }
 
 func (o *OllamaOptions) getEndpoints() []string {
@@ -34,7 +34,7 @@ func (o *OllamaOptions) getAPIPath() string {
 
 func (o *OllamaOptions) buildHeaders(apiKey string) zhttp.Header {
 	if apiKey != "" {
-		return buildAuthHeaders("Bearer " + apiKey)
+		return buildAuthHeaders(apiKey)
 	}
 	return buildJSONHeaders()
 }

@@ -382,35 +382,6 @@ func healthCheckedLoadBalancing() {
     
     fmt.Printf("成功获取响应: %s\n", resp)
 }
-
-// 负载均衡器使用场景示例
-func loadBalancingScenarios() {
-    fmt.Println("=== 负载均衡使用场景 ===")
-    
-    // 场景1：高可用性要求
-    fmt.Println("\n1. 高可用性配置：")
-    fmt.Println("- 多个云服务商备份")
-    fmt.Println("- 本地服务作为最后备用")
-    fmt.Println("- 自动故障转移")
-    
-    // 场景2：成本优化
-    fmt.Println("\n2. 成本优化配置：")
-    fmt.Println("- 优先使用低成本服务")
-    fmt.Println("- 高峰期使用备用服务")
-    fmt.Println("- 根据请求类型选择提供商")
-    
-    // 场景3：性能优化
-    fmt.Println("\n3. 性能优化配置：")
-    fmt.Println("- 地理位置优化")
-    fmt.Println("- 响应时间优先级")
-    fmt.Println("- 并发请求分发")
-    
-    // 场景4：多模态支持
-    fmt.Println("\n4. 多模态配置：")
-    fmt.Println("- Gemini 处理图像理解")
-    fmt.Println("- OpenAI 处理代码生成")
-    fmt.Println("- DeepSeek 处理中文对话")
-}
 ```
 
 #### 负载均衡最佳实践

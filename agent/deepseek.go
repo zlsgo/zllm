@@ -20,12 +20,12 @@ type DeepseekOptions struct {
 	OnMessage   func(string, []byte)
 }
 
-func (o *DeepseekOptions) getAPIKey() string {
-	return o.APIKey
+func (o *DeepseekOptions) getAPIKey() []string {
+	return parseValue(o.APIKey)
 }
 
 func (o *DeepseekOptions) getEndpoints() []string {
-	return parseKeys(o.BaseURL)
+	return parseValue(o.BaseURL)
 }
 
 func (o *DeepseekOptions) getAPIPath() string {
@@ -33,7 +33,7 @@ func (o *DeepseekOptions) getAPIPath() string {
 }
 
 func (o *DeepseekOptions) buildHeaders(apiKey string) zhttp.Header {
-	return buildAuthHeaders("Bearer " + apiKey)
+	return buildAuthHeaders(apiKey)
 }
 
 func (o *DeepseekOptions) getStreamProcessor() string {
@@ -79,8 +79,8 @@ func NewDeepseek(opt ...func(*DeepseekOptions)) LLM {
 	return &DeepseekProvider{
 		baseProvider: newBaseProvider(Config),
 		options:      o,
-		endpoint:     parseKeys(o.BaseURL),
-		keys:         parseKeys(o.APIKey),
+		endpoint:     parseValue(o.BaseURL),
+		keys:         parseValue(o.APIKey),
 	}
 }
 

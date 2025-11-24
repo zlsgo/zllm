@@ -32,12 +32,12 @@ type tool struct {
 	Args string `json:"args"`
 }
 
-func parseKeys(apiKey string) []string {
-	if apiKey == "" {
+func parseValue(v string) []string {
+	if v == "" {
 		return []string{}
 	}
 
-	rawKeys := strings.Split(apiKey, ",")
+	rawKeys := strings.Split(v, ",")
 	result := make([]string, 0, len(rawKeys))
 	for _, key := range rawKeys {
 		if trimmed := strings.TrimSpace(key); trimmed != "" {
@@ -97,14 +97,6 @@ func shouldRetry(err error) bool {
 	return true
 }
 
-// requireAPIKey 验证API密钥
-func requireAPIKey(apiKey, providerName string) error {
-	if apiKey == "" {
-		return runtime_errors.NewLLMError(runtime_errors.ErrUnauthorized, fmt.Sprintf("%s api key is required", providerName))
-	}
-	return nil
-}
-
 // buildJSONHeaders 创建JSON请求头
 func buildJSONHeaders() zhttp.Header {
 	return zhttp.Header{
@@ -114,10 +106,13 @@ func buildJSONHeaders() zhttp.Header {
 
 // buildAuthHeaders 创建认证请求头
 func buildAuthHeaders(authToken string) zhttp.Header {
-	return zhttp.Header{
-		"Content-Type":  "application/json",
-		"Authorization": authToken,
+	h := zhttp.Header{
+		"Content-Type": "application/json",
 	}
+	if authToken != "" {
+		h["Authorization"] = "Bearer " + authToken
+	}
+	return h
 }
 
 // handleHTTPError 处理HTTP错误

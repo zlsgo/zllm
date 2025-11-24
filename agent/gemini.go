@@ -30,12 +30,12 @@ type GeminiOptions struct {
 }
 
 // 实现 providerConfig 接口
-func (o *GeminiOptions) getAPIKey() string {
-	return o.APIKey
+func (o *GeminiOptions) getAPIKey() []string {
+	return parseValue(o.APIKey)
 }
 
 func (o *GeminiOptions) getEndpoints() []string {
-	return parseKeys(o.BaseURL)
+	return parseValue(o.BaseURL)
 }
 
 func (o *GeminiOptions) getAPIPath() string {
@@ -122,8 +122,8 @@ func NewGemini(opt ...func(*GeminiOptions)) LLM {
 	return &GeminiProvider{
 		baseProvider: baseProvider,
 		options:      o,
-		endpoint:     parseKeys(o.BaseURL),
-		keys:         parseKeys(o.APIKey),
+		endpoint:     parseValue(o.BaseURL),
+		keys:         parseValue(o.APIKey),
 	}
 }
 

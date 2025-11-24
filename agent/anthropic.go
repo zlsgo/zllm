@@ -67,8 +67,8 @@ func NewAnthropic(opt ...func(*AnthropicOptions)) LLM {
 	return &AnthropicProvider{
 		baseProvider: base,
 		options:      o,
-		endpoint:     parseKeys(o.BaseURL),
-		keys:         parseKeys(o.APIKey),
+		endpoint:     parseValue(o.BaseURL),
+		keys:         parseValue(o.APIKey),
 	}
 }
 
@@ -88,9 +88,6 @@ func (p *AnthropicProvider) getAPIKey() string {
 
 // Generate 普通请求
 func (p *AnthropicProvider) Generate(ctx context.Context, body []byte) (*zjson.Res, error) {
-	if err := requireAPIKey(p.getAPIKey(), "anthropic"); err != nil {
-		return nil, err
-	}
 	var err error
 	body, err = completeMessage(p, body)
 	if err != nil {
@@ -129,10 +126,6 @@ func (p *AnthropicProvider) Generate(ctx context.Context, body []byte) (*zjson.R
 
 // Stream 流式请求
 func (p *AnthropicProvider) Stream(ctx context.Context, body []byte, callback func(string, []byte)) (<-chan *zjson.Res, error) {
-	if err := requireAPIKey(p.getAPIKey(), "anthropic"); err != nil {
-		return nil, err
-	}
-
 	var err error
 	body, err = completeMessage(p, body)
 	if err != nil {

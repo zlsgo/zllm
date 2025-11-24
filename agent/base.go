@@ -15,7 +15,7 @@ import (
 
 // AuthProvider 认证配置接口
 type AuthProvider interface {
-	getAPIKey() string
+	getAPIKey() []string
 	buildHeaders(apiKey string) zhttp.Header
 }
 
@@ -170,10 +170,6 @@ func (bp *baseProvider) DoSSE(ctx context.Context, url string, headers zhttp.Hea
 
 // generateWithConfig 通用生成方法
 func (bp *baseProvider) generateWithConfig(ctx context.Context, config providerConfig, body []byte) (*zjson.Res, error) {
-	if err := requireAPIKey(config.getAPIKey(), "provider"); err != nil {
-		return nil, err
-	}
-
 	// 强制关闭流式模式进行 Generate
 	stream := zjson.GetBytes(body, "stream").Bool()
 	if stream {
@@ -182,7 +178,7 @@ func (bp *baseProvider) generateWithConfig(ctx context.Context, config providerC
 
 	logRequestBody(body)
 
-	keys := newRand(config.getEndpoints())
+	keys := newRand(config.getAPIKey())
 	endpoints := newRand(config.getEndpoints())
 
 	url := endpoints() + config.getAPIPath()
@@ -252,7 +248,7 @@ func (bp *baseProvider) streamWithConfig(ctx context.Context, config providerCon
 			}
 		}()
 
-		keys := newRand(config.getEndpoints())
+		keys := newRand(config.getAPIKey())
 		endpoints := newRand(config.getEndpoints())
 
 		url := endpoints() + config.getAPIPath()
