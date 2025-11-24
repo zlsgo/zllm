@@ -1,5 +1,7 @@
+// Package message 管理对话消息和格式化
 package message
 
+// definitionOutputFormat 定义输出格式
 func definitionOutputFormat(format string) string {
 	if format == "" {
 		return ""

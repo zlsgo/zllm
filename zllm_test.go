@@ -2,31 +2,43 @@ package zllm
 
 import (
 	"context"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/sohaha/zlsgo"
-	"github.com/sohaha/zlsgo/zerror"
 	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/zlsgo/zllm/agent"
-	"github.com/zlsgo/zllm/inlay"
 	"github.com/zlsgo/zllm/message"
+	"github.com/zlsgo/zllm/runtime"
 )
 
-var llm agent.LLMAgent
+var llm agent.LLM
 
 func TestMain(m *testing.M) {
-	inlay.SetDebug(true)
+	runtime.SetDebug(true)
 
-	llm = agent.NewOpenAIProvider(func(oa *agent.OpenAIOptions) {
-		oa.Model = "gpt-4o-mini"
-		oa.APIKey = "sk-proj-1234567890"
+	llm = agent.NewOpenAI(func(oa *agent.OpenAIOptions) {
+		if apiKey := os.Getenv("TEST_LLM_API_KEY"); apiKey != "" {
+			oa.APIKey = apiKey
+		}
+		if model := os.Getenv("TEST_LLM_MODEL"); model != "" {
+			oa.Model = model
+		}
+		if baseURL := os.Getenv("TEST_LLM_BASE_URL"); baseURL != "" {
+			oa.BaseURL = baseURL
+		}
 	})
 
 	m.Run()
 }
 
 func TestExecuteMessages(t *testing.T) {
+	if os.Getenv("TEST_LLM_API_KEY") == "" {
+		t.Skip("Skipping integration test: TEST_LLM_API_KEY not set")
+	}
+
 	tt := zlsgo.NewTest(t)
 
 	messages := message.NewMessages()
@@ -34,15 +46,19 @@ func TestExecuteMessages(t *testing.T) {
 
 	resp, err := CompleteLLM(context.Background(), llm, messages)
 	tt.Log(resp)
-	tt.NoError(err, true)
+	tt.NoError(err)
 
 	messages.Append(message.Message{Role: "user", Content: "我刚刚和你说了什么?"})
 	resp, err = CompleteLLM(context.Background(), llm, messages)
 	tt.Log(resp)
-	tt.NoError(err, true)
+	tt.NoError(err)
 }
 
 func TestExecutePrompt(t *testing.T) {
+	if os.Getenv("TEST_LLM_API_KEY") == "" {
+		t.Skip("Skipping integration test: TEST_LLM_API_KEY not set")
+	}
+
 	tt := zlsgo.NewTest(t)
 
 	p := message.NewPrompt("{{问题}}?", func(p *message.PromptOptions) {
@@ -126,6 +142,10 @@ func (p testOutputFormat) String() string {
 var testOutput message.OutputFormat = testOutputFormat{}
 
 func TestExecutePromptWithHistory(t *testing.T) {
+	if os.Getenv("TEST_LLM_API_KEY") == "" {
+		t.Skip("Skipping integration test: TEST_LLM_API_KEY not set")
+	}
+
 	tt := zlsgo.NewTest(t)
 
 	p := message.NewPrompt("{{问题}}", func(p *message.PromptOptions) {
@@ -166,6 +186,10 @@ func TestExecutePromptWithHistory(t *testing.T) {
 }
 
 func TestExecutePromptMore(t *testing.T) {
+	if os.Getenv("TEST_LLM_API_KEY") == "" {
+		t.Skip("Skipping integration test: TEST_LLM_API_KEY not set")
+	}
+
 	tt := zlsgo.NewTest(t)
 
 	tt.Run("Base", func(tt *zlsgo.TestUtil) {
@@ -287,56 +311,88 @@ func TestRole(t *testing.T) {
 		resp, err = CompleteLLM(context.Background(), llm, messages)
 		tt.Log(resp)
 		if err != nil {
-			tt.Log(zerror.Unwrap(err, message.ErrOutputFormatNotFound))
+			if strings.Contains(err.Error(), "output format not found") {
+				tt.Log("Expected output format error found")
+			} else {
+				tt.Log("Unexpected error:", err)
+			}
 		}
 
 		messages.AppendUser(resp + " 水")
 		resp, err = CompleteLLM(context.Background(), llm, messages)
 		tt.Log(resp)
 		if err != nil {
-			tt.Log(zerror.Unwrap(err, message.ErrOutputFormatNotFound))
+			if strings.Contains(err.Error(), "output format not found") {
+				tt.Log("Expected output format error found")
+			} else {
+				tt.Log("Unexpected error:", err)
+			}
 		}
 
 		messages.AppendUser(resp + " 火")
 		resp, err = CompleteLLM(context.Background(), llm, messages)
 		tt.Log(resp)
 		if err != nil {
-			tt.Log(zerror.Unwrap(err, message.ErrOutputFormatNotFound))
+			if strings.Contains(err.Error(), "output format not found") {
+				tt.Log("Expected output format error found")
+			} else {
+				tt.Log("Unexpected error:", err)
+			}
 		}
 
 		messages.AppendUser(resp + " 加水")
 		resp, err = CompleteLLM(context.Background(), llm, messages)
 		tt.Log(resp)
 		if err != nil {
-			tt.Log(zerror.Unwrap(err, message.ErrOutputFormatNotFound))
+			if strings.Contains(err.Error(), "output format not found") {
+				tt.Log("Expected output format error found")
+			} else {
+				tt.Log("Unexpected error:", err)
+			}
 		}
 
 		messages.AppendUser(resp + " 土")
 		resp, err = CompleteLLM(context.Background(), llm, messages)
 		tt.Log(resp)
 		if err != nil {
-			tt.Log(zerror.Unwrap(err, message.ErrOutputFormatNotFound))
+			if strings.Contains(err.Error(), "output format not found") {
+				tt.Log("Expected output format error found")
+			} else {
+				tt.Log("Unexpected error:", err)
+			}
 		}
 
 		messages.AppendUser(resp + " 火")
 		resp, err = CompleteLLM(context.Background(), llm, messages)
 		tt.Log(resp)
 		if err != nil {
-			tt.Log(zerror.Unwrap(err, message.ErrOutputFormatNotFound))
+			if strings.Contains(err.Error(), "output format not found") {
+				tt.Log("Expected output format error found")
+			} else {
+				tt.Log("Unexpected error:", err)
+			}
 		}
 
 		messages.AppendUser("我现在都有什么元素了")
 		resp, err = CompleteLLM(context.Background(), llm, messages)
 		tt.Log(resp)
 		if err != nil {
-			tt.Log(zerror.Unwrap(err, message.ErrOutputFormatNotFound))
+			if strings.Contains(err.Error(), "output format not found") {
+				tt.Log("Expected output format error found")
+			} else {
+				tt.Log("Unexpected error:", err)
+			}
 		}
 
 		messages.AppendUser("飞机可以通过什么元素加什么元素合成")
 		resp, err = CompleteLLM(context.Background(), llm, messages)
 		tt.Log(resp)
 		if err != nil {
-			tt.Log(zerror.Unwrap(err, message.ErrOutputFormatNotFound))
+			if strings.Contains(err.Error(), "output format not found") {
+				tt.Log("Expected output format error found")
+			} else {
+				tt.Log("Unexpected error:", err)
+			}
 		}
 
 		t.Log(messages.String())

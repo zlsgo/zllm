@@ -1,4 +1,4 @@
-package inlay
+package runtime
 
 import (
 	"github.com/sohaha/zlsgo/zlog"
@@ -7,6 +7,7 @@ import (
 
 var isDebug = zutil.NewBool(false)
 
+// SetDebug 设置调试模式
 func SetDebug(debug bool) {
 	isDebug.Store(debug)
 	if log == nil {
@@ -19,10 +20,12 @@ func SetDebug(debug bool) {
 	}
 }
 
+// IsDebug 获取调试模式状态
 func IsDebug() bool {
 	return isDebug.Load()
 }
 
+// SetLog 设置自定义日志记录器
 func SetLog(l *zlog.Logger) {
 	log = l
 }

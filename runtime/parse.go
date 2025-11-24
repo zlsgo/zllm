@@ -1,13 +1,14 @@
-package inlay
+package runtime
 
 import "bytes"
 
 var (
-	thinkStart = []byte("<think>")
+	thinkStart = []byte("</think>")
 	thinkEnd   = []byte("</think>")
 	codeWrap   = []byte("```")
 )
 
+// ParseContent 解析响应内容
 func ParseContent(resp []byte) []byte {
 	if bytes.HasPrefix(resp, thinkStart) {
 		thinkEndIndex := bytes.Index(resp, thinkEnd)

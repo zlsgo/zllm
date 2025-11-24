@@ -10,16 +10,15 @@ import (
 	"github.com/zlsgo/zllm/message"
 )
 
+// 专用的电商内容翻译提示词，处理产品标题、描述和营销文案，注重推广语气和文化适配
 var translateEcommercePrompt = zutil.Once(func() *message.Prompt {
 	return message.NewPrompt("{{text}}", func(po *message.PromptOptions) {
 		po.SystemPrompt = `你是一位外贸电商推广员，精通各国语言，非常擅长把电商文案翻译成任何一种语言。\n现在我需要你帮我把内容翻译成 **{{language}}** 语言。`
 		po.OutputFormat = message.CustomOutputFormat(map[string]string{"title": "{}", "description": "{}", "excerpt": "{}"})
 		po.Steps = []string{
 			"用户输入的是一个 JSON 对象，请将 JSON 里字段对应的内容翻译成 **{{language}}**",
-			// "翻译结果按照 对应字段 格式返回，如果对应字段结果不存在，请返回空字符串",
 		}
 		po.Rules = []string{
-			// "如果用户输入的 JSON 对象中没有某个字段，请忽略该字段，不要翻译",
 			"注意:内容如果包含 HTML 片段, 翻译时忽略掉 HTML 标签属性，翻译结果需要保留原有的 HTML 格式。",
 			"注意:内容如果包含 Markdown 片段, 需要保留包括并不限于：图片、代码块、 HTML 等。",
 			"捕捉原文的细微差别和促销语气：翻译时要注意原文中的语气和情感，确保译文能够传达出同样的促销效果。",
@@ -27,8 +26,6 @@ var translateEcommercePrompt = zutil.Once(func() *message.Prompt {
 			"严格保留原文的格式：译文应该保持原文的结构和呈现方式，包括标点符号、段落划分、标题等。",
 			"注意准确翻译关键细节：如年份、数量、尺寸等，这些细节对于产品描述的准确性至关重要。",
 			"根据文化差异调整翻译：考虑到不同文化背景下的消费者习惯，翻译时要做出相应的调整，以确保营销信息的有效性。",
-			// "长度限制: **{title}** 如果超过长度 10 个字符，请忽略其他规则,进行优化精炼, 不要超过 10 个字符",
-			// "description 字段是商品描述，如果超过 50 个字符，请忽略限制根据实际情况进行进行精炼和润色",
 		}
 		po.Examples = [][2]string{
 			{
@@ -53,12 +50,10 @@ var translateEcommercePrompt = zutil.Once(func() *message.Prompt {
 })
 
 func TranslateEcommerce(ctx context.Context,
-	agent agent.LLMAgent,
+	agent agent.LLM,
 	text map[string]string,
 	language ...string,
 ) (string, error) {
-	// text, _ = zjson.Set("", "input", text)
-
 	format := map[string]string{}
 	for k := range text {
 		format[k] = `{` + k + `}`

@@ -1,4 +1,4 @@
-package agent
+package agent_test
 
 import (
 	"context"
@@ -7,16 +7,17 @@ import (
 	"github.com/sohaha/zlsgo"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
+	"github.com/zlsgo/zllm/agent"
 	"github.com/zlsgo/zllm/message"
 )
 
-var deepseek = NewDeepseek(func(oa *DeepseekOptions) {
-	oa.Stream = false
+var anthropic = agent.NewAnthropic(func(a *agent.AnthropicOptions) {
+	a.Stream = false
 })
 
-func TestNewDeepseek(t *testing.T) {
-	if zutil.Getenv("DEEPSEEK_API_KEY") == "" {
-		t.Skip("跳过测试 DEEPSEEK")
+func TestNewAnthropic(t *testing.T) {
+	if zutil.Getenv("ANTHROPIC_BASE_URL") == "" {
+		t.Skip("跳过测试 ANTHROPIC")
 	}
 
 	tt := zlsgo.NewTest(t)
@@ -30,21 +31,20 @@ func TestNewDeepseek(t *testing.T) {
 	tt.NoError(err, true)
 	tt.Log(messages.String())
 
-	data, err := deepseek.PrepareRequest(
+	data, err := anthropic.PrepareRequest(
 		messages,
 		func(m ztype.Map) ztype.Map {
 			m.Set("temperature", 0.7)
 			return m
 		},
 	)
+	tt.NoError(err, true)
 	tt.Log(string(data))
+
+	resp, err := anthropic.Generate(context.Background(), data)
 	tt.NoError(err, true)
 
-	resp, err := deepseek.Generate(context.Background(), data)
-	tt.Log(resp)
-	tt.NoError(err, true)
-
-	parse, err := deepseek.ParseResponse(resp)
+	parse, err := anthropic.ParseResponse(resp)
 	tt.NoError(err, true)
 	tt.Log(string(parse.Content))
 }

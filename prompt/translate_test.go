@@ -14,7 +14,6 @@ func TestTranslate(t *testing.T) {
 		got string
 		err error
 	)
-	// utils.SetLogLevel(zlog.LogDebug)
 	got, err = prompt.Translate(
 		context.Background(),
 		llm,

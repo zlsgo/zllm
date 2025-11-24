@@ -12,7 +12,7 @@ import (
 	"github.com/zlsgo/zllm/message"
 )
 
-func TestNewOllamaProvider(t *testing.T) {
+func TestNewOllama(t *testing.T) {
 	ollama := "http://127.0.0.1:11434"
 	tt := zlsgo.NewTest(t)
 
@@ -21,7 +21,7 @@ func TestNewOllamaProvider(t *testing.T) {
 		return
 	}
 
-	llm := agent.NewOllamaProvider(func(oo *agent.OllamaOptions) {
+	llm := agent.NewOllama(func(oo *agent.OllamaOptions) {
 		oo.Model = "qwen2.5:0.5b"
 		oo.BaseURL = ollama
 	})
