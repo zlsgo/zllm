@@ -1,4 +1,4 @@
-package inlay
+package runtime
 
 import (
 	"github.com/sohaha/zlsgo/zlog"
@@ -6,16 +6,10 @@ import (
 
 var log *zlog.Logger
 
+// Log 记录调试消息
 func Log(v ...any) {
 	if log == nil {
 		return
 	}
 	log.Debug(v...)
-}
-
-func Warn(v ...any) {
-	if log == nil {
-		return
-	}
-	log.Warn(v...)
 }

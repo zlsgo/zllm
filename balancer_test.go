@@ -6,22 +6,27 @@ import (
 
 	"github.com/sohaha/zlsgo"
 	"github.com/sohaha/zlsgo/zpool"
+	"github.com/sohaha/zlsgo/zutil"
 	"github.com/zlsgo/zllm/agent"
 	"github.com/zlsgo/zllm/message"
 )
 
 func TestBalancerCompleteLLM(t *testing.T) {
-	tt := zlsgo.NewTest(t)
-	nodes := zpool.NewBalancer[agent.LLMAgent]()
+	if zutil.Getenv("OPENAI_API_KEY") == "" {
+		t.Skip("跳过测试 OPENAI")
+	}
 
-	nodes.Add("gpt", agent.NewOpenAIProvider(func(oa *agent.OpenAIOptions) {
+	tt := zlsgo.NewTest(t)
+	nodes := zpool.NewBalancer[agent.LLM]()
+
+	nodes.Add("gpt", agent.NewOpenAI(func(oa *agent.OpenAIOptions) {
 		oa.Model = "gpt"
 	}), func(opts *zpool.BalancerNodeOptions) {
 		opts.Weight = 100
 		opts.Cooldown = 10000
 	})
 
-	nodes.Add("gpt-4o-mini", agent.NewOpenAIProvider(func(oa *agent.OpenAIOptions) {
+	nodes.Add("gpt-4o-mini", agent.NewOpenAI(func(oa *agent.OpenAIOptions) {
 		oa.Model = "gpt-4o-mini"
 	}))
 
@@ -39,7 +44,7 @@ func TestBalancerCompleteLLM(t *testing.T) {
 	tt.Equal("2025-02-11", resp.Get("时间").String())
 	tt.Equal("北京", resp.Get("地点").String())
 
-	nodes.WalkNodes(func(node agent.LLMAgent, available bool) (normal bool) {
+	nodes.WalkNodes(func(node agent.LLM, available bool) (normal bool) {
 		tt.Log(node, available)
 		return true
 	})

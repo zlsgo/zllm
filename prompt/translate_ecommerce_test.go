@@ -17,15 +17,10 @@ func TestTranslateEcommerce(t *testing.T) {
 		err error
 	)
 
-	// utils.SetLogLevel(zlog.LogDebug)
-
 	text := map[string]string{
 		"title":       "卡维蒙沙发现代简约轻奢客厅意式极简<b>小户型</b>直排组合2024新款真皮沙发 直排 2.8米 标准款【接触面真皮】海绵座包",
 		"description": "卡维蒙沙发是意大利品牌，采用优质真皮材质，简约轻奢的设计风格，适合小户型客厅使用。",
-		// "title": "Kaveman sofa modern simple light luxury living room Italian minimalist <b>small</b> apartment straight row combination 2024 new leather sofa Straight row 2.8 meters standard model [contact surface leather] sponge seat package",
 	}
-	// text, _ := zjson.Set(`{}`, "title", "卡维蒙沙发现代简约轻奢客厅意式极简小户型直排组合2024新款真皮沙发 直排 2.8米 标准款【接触面真皮】海绵座包")
-	// text, _ = zjson.Set(text, "description", "卡维蒙沙发是意大利品牌，采用优质真皮材质，简约轻奢的设计风格，适合小户型客厅使用。")
 
 	got, err = prompt.TranslateEcommerce(context.Background(), llm, text, "英文")
 	tt.NoError(err, true)

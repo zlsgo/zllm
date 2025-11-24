@@ -8,12 +8,14 @@ import (
 	"github.com/sohaha/zlsgo/zutil"
 )
 
+// CacheType 缓存策略类型
 type CacheType string
 
 const (
 	CacheTypeEphemeral CacheType = "ephemeral"
 )
 
+// PromptMessage 提示词消息
 type PromptMessage struct {
 	Role      string    `json:"role"`
 	Content   string    `json:"content"`
@@ -21,14 +23,15 @@ type PromptMessage struct {
 	Name      string    `json:"name,omitempty"`
 }
 
+// Prompt 结构化提示词
 type Prompt struct {
-	Input           string          `json:"input"`
-	SystemCacheType CacheType       `json:"systemCacheType,omitempty"`
-	Messages        []PromptMessage `json:"messages,omitempty"`
-
-	options PromptOptions
+	Input           string
+	SystemCacheType CacheType
+	Messages        []PromptMessage
+	options         PromptOptions
 }
 
+// PromptOptions 提示词配置选项
 type PromptOptions struct {
 	OutputFormat OutputFormat
 	MaxLength    int
@@ -39,6 +42,7 @@ type PromptOptions struct {
 	Placeholder  map[string]string
 }
 
+// NewPrompt 创建新的提示词
 func NewPrompt(input string, options ...func(*PromptOptions)) *Prompt {
 	return &Prompt{
 		Input:   input,
@@ -46,14 +50,17 @@ func NewPrompt(input string, options ...func(*PromptOptions)) *Prompt {
 	}
 }
 
+// ParseResponse 解析响应
 func (p *Prompt) ParseResponse(resp []byte) (any, error) {
 	return p.options.OutputFormat.Parse(resp)
 }
 
+// IsEmpty 检查提示词是否为空
 func (p *Prompt) IsEmpty() bool {
 	return p.options.SystemPrompt == "" && len(p.Messages) == 0 && len(p.options.Examples) == 0 && len(p.options.Rules) == 0 && p.options.MaxLength == 0 && len(p.options.Steps) == 0 // && p.options.Role == ""
 }
 
+// Bytes 生成字节数组形式的提示词
 func (p *Prompt) Bytes(options ...PromptConvertOptions) []byte {
 	if p.IsEmpty() {
 		return []byte(p.Input)
@@ -100,7 +107,6 @@ func (p *Prompt) Bytes(options ...PromptConvertOptions) []byte {
 		outputFormat = options[0].OutputFormat
 	}
 	if outputFormat != nil {
-		// builder.WriteString("Respond using JSON\n")
 		format := definitionOutputFormat(outputFormat.String())
 		if format != "" {
 			builder.WriteString(format)
@@ -149,6 +155,7 @@ func (p *Prompt) Bytes(options ...PromptConvertOptions) []byte {
 	return builder.Bytes()
 }
 
+// String 返回字符串形式的提示词
 func (p *Prompt) String() string {
 	return zstring.Bytes2String(p.Bytes())
 }

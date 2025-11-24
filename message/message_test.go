@@ -63,6 +63,10 @@ func TestMessages(t *testing.T) {
 		tt.EqualExit("user: 你好呀\nassistant: 好的呀\nuser: 你叫什么名字\nassistant: 我叫小明", msg.String())
 		tt.EqualExit([][]string{{message.RoleUser, "你好呀"}, {message.RoleAssistant, "好的呀"}, {message.RoleUser, "你叫什么名字"}, {message.RoleAssistant, "我叫小明"}}, msg.History(false))
 		tt.EqualExit([][]string{{message.RoleUser, "你好呀"}, {message.RoleAssistant, "好的呀"}, {message.RoleUser, "你叫什么名字"}, {message.RoleAssistant, "{\"结果\":\"我叫小明\"}"}}, msg.History(true))
+
+		tt.EqualExit(
+			"user: 你好呀\nassistant: 好的呀\nuser: 你叫什么名字\nassistant: 我叫小明",
+			msg.String())
 	})
 }
 

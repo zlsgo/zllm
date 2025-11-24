@@ -1,16 +1,20 @@
+// Package message 管理对话消息和格式化
 package message
 
 import (
 	"io"
+	"strings"
 
+	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
 )
 
+// Message 表示对话中的单条消息
 type Message struct {
-	Role         string `json:"role"`
-	Content      string `json:"content"`
+	Role         string
+	Content      string
 	options      MessageOptions
 	outputFormat bool
 }
@@ -23,6 +27,7 @@ func (p *Message) Prompt() string {
 	return p.Content
 }
 
+// Messages 消息集合管理器
 type Messages struct {
 	prompt      *Prompt
 	input       string
@@ -31,6 +36,7 @@ type Messages struct {
 	options     PromptConvertOptions
 }
 
+// NewMessages 创建新的消息集合
 func NewMessages(input ...string) *Messages {
 	m := &Messages{}
 	if len(input) > 0 {
@@ -40,12 +46,13 @@ func NewMessages(input ...string) *Messages {
 	return m
 }
 
+// MessageOptions 消息选项配置
 type MessageOptions struct {
-	Format OutputFormat
-
+	Format        OutputFormat
 	InheritFormat bool
 }
 
+// AppendUser 添加用户消息
 func (p *Messages) AppendUser(message string, wrapOutputFormat ...OutputFormat) error {
 	return p.Append(Message{
 		Role:    RoleUser,
@@ -54,13 +61,14 @@ func (p *Messages) AppendUser(message string, wrapOutputFormat ...OutputFormat) 
 		if len(wrapOutputFormat) > 0 {
 			options.Format = wrapOutputFormat[0]
 		} else {
-			if (len(p.messages) > 0 && p.messages[len(p.messages)-1].Role != RoleUser) && p.prompt.options.OutputFormat == nil {
+			if (len(p.messages) > 0 && p.messages[len(p.messages)-1].Role != RoleUser) && (p.prompt == nil || p.prompt.options.OutputFormat == nil) {
 				options.InheritFormat = true
 			}
 		}
 	})
 }
 
+// AppendAssistant 添加助手消息
 func (p *Messages) AppendAssistant(message string, wrapFormat ...OutputFormat) error {
 	return p.Append(Message{
 		Role:    RoleAssistant,
@@ -76,6 +84,7 @@ func (p *Messages) AppendAssistant(message string, wrapFormat ...OutputFormat) e
 	})
 }
 
+// Append 添加消息
 func (p *Messages) Append(message Message, options ...func(options *MessageOptions)) error {
 	message.options = zutil.Optional(MessageOptions{}, options...)
 	message.outputFormat = message.options.Format != nil
@@ -85,7 +94,6 @@ func (p *Messages) Append(message Message, options ...func(options *MessageOptio
 		if !message.outputFormat && message.options.InheritFormat {
 			message.outputFormat = true
 			message.options.Format = defaultOutputFormatText
-			// message.options.Format, _ = p.prompt.options.Format.Format(message.Content)
 		}
 	case RoleUser:
 		if !message.outputFormat && message.options.InheritFormat {
@@ -124,10 +132,10 @@ func (p *Messages) Len() int {
 	return len(p.messages)
 }
 
+// ParseFormat 解析格式化响应
 func (p *Messages) ParseFormat(response []byte) ([]byte, error) {
 	var outputFormat OutputFormat
 
-	// 上一条消息如果不指定格式则直接返回响应
 	if len(p.messages) > 0 && p.messages[len(p.messages)-1].outputFormat {
 		outputFormat = p.messages[len(p.messages)-1].options.Format
 	} else if p.options.OutputFormat != nil {
@@ -142,12 +150,17 @@ func (p *Messages) ParseFormat(response []byte) ([]byte, error) {
 			return nil, err
 		}
 
+		if output == nil {
+			return response, nil
+		}
+
 		return ztype.ToBytes(output), nil
 	}
 
 	return response, nil
 }
 
+// History 获取历史消息
 func (p *Messages) History(wrapPrompt bool) [][]string {
 	m := make([][]string, 0, p.Len()+1)
 
@@ -165,7 +178,6 @@ func (p *Messages) History(wrapPrompt bool) [][]string {
 
 	for i := range p.messages {
 		if wrapPrompt && p.messages[i].options.Format != nil {
-			// 如果最后一条是用户就要把格式带上
 			if p.messages[i].Role != RoleUser || (p.messages[i].Role == RoleUser && i == len(p.messages)-1) {
 				if p.messages[i].Role == RoleUser {
 					format := definitionOutputFormat(p.messages[i].options.Format.String())
@@ -202,17 +214,59 @@ func (p *Messages) String() string {
 
 		s.WriteString(history[i][0])
 		s.WriteString(": ")
-		s.WriteString(history[i][1])
+
+		content := history[i][1]
+
+		if history[i][0] == "assistant" {
+			var msgIndex int
+			if p.prompt != nil && (p.formatInput != "" || p.input != "") {
+				msgIndex = i - 1 // 第一个是 prompt 输入，减去 1
+			} else {
+				msgIndex = i
+			}
+
+			if msgIndex >= 0 && msgIndex < len(p.messages) &&
+				p.messages[msgIndex].Role == RoleAssistant &&
+				p.messages[msgIndex].options.Format != nil {
+				parsedContent, err := p.messages[msgIndex].options.Format.Parse(zstring.String2Bytes(content))
+				if err == nil {
+					if mp, ok := parsedContent.(ztype.Map); ok {
+						if assistantMsg, exists := mp["Assistant"]; exists {
+							s.WriteString(ztype.ToString(assistantMsg))
+						} else {
+							s.WriteString(ztype.ToString(parsedContent))
+						}
+					} else {
+						s.WriteString(ztype.ToString(parsedContent))
+					}
+					continue
+				}
+			}
+
+			if strings.HasPrefix(strings.TrimSpace(content), "{") && strings.HasSuffix(strings.TrimSpace(content), "}") {
+				parsed := zjson.ParseBytes(zstring.String2Bytes(content))
+				if parsed.IsObject() {
+					if assistantValue := parsed.Get("Assistant"); assistantValue.Exists() {
+						s.WriteString(assistantValue.String())
+						continue
+					}
+				}
+			}
+		}
+
+		s.WriteString(content)
 	}
 
 	return s.String()
 }
 
+// PromptConvertOptions 提示转换选项
 type PromptConvertOptions struct {
 	Placeholder  map[string]string
 	OutputFormat OutputFormat
 }
 
+// ConvertToMessages 转换为消息集合
 func (p *Prompt) ConvertToMessages(options ...PromptConvertOptions) (messages *Messages, err error) {
 	t := zstring.String2Bytes(p.Input)
 
@@ -244,6 +298,7 @@ func (p *Prompt) ConvertToMessages(options ...PromptConvertOptions) (messages *M
 	return
 }
 
+// buildTemplate 构建模板
 func (p *Prompt) buildTemplate(template string, placeholder ...map[string]string) ([]byte, error) {
 	t, err := zstring.NewTemplate(template, "{{", "}}")
 	if err != nil {
