@@ -2,6 +2,7 @@
 package zllm
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"time"
@@ -169,7 +170,7 @@ func CompleteLLM[T promptMsg](ctx context.Context, llm agent.LLM, msg T, options
 		return "", err
 	}
 
-	parse, _, err := processLLMInteraction(ctx, llm, messages, content, options...)
+	parse, _, err := processLLMInteraction(ctx, llm, messages, bytes.TrimSpace(content), options...)
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
 			runtime.Log("LLM request timeout after", timeout)
